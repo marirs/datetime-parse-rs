@@ -1,5 +1,6 @@
 Date Time parser
 =================
+[![Build Status](https://travis-ci.com/marirs/datetime-parse-rs.svg?branch=main)](https://travis-ci.com/marirs/datetime-parse-rs)
 ![GitHub](https://img.shields.io/github/license/marirs/datetime-parse-rs)
 
 Parse various different date/time formats to a standard RFC 3339 format as chrono DateTime FixedOffset.
