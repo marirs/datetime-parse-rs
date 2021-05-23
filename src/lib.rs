@@ -3,7 +3,7 @@
 //! Parsed date will be returned `DateTime<FixedOffset>`
 //!
 
-use chrono::{DateTime, FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
+use chrono::{DateTime, FixedOffset, Local, NaiveDate, NaiveDateTime, NaiveTime, ParseError, TimeZone, Datelike};
 
 #[cfg(test)]
 mod tests;
@@ -41,31 +41,52 @@ impl std::str::FromStr for DateTimeFixedOffset {
 fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
     let date_time = standardize_date(date_time);
     DateTime::parse_from_str(&date_time, "%+")
-        .or_else(|_| DateTime::parse_from_rfc3339(&date_time))
-        .or_else(|_| DateTime::parse_from_rfc2822(&date_time))
-        .or_else(|_| DateTime::parse_from_str(&date_time, "%Y-%m-%dT%T%.f%z"))
-        .or_else(|_| DateTime::parse_from_str(&date_time, "%Y-%m-%d %T%#z"))
-        .or_else(|_| DateTime::parse_from_str(&date_time, "%Y-%m-%d %T.%f%#z"))
-        .or_else(|_| DateTime::parse_from_str(&date_time, "%Y-%m-%d %T.%f%#z"))
+        .or_else(|_| from_datetime_with_tz(&date_time))
         .or_else(|_| from_datetime_without_tz(&date_time))
         .or_else(|_| from_date_without_tz(&date_time))
         .or_else(|_| from_time_without_tz(&date_time))
         .or_else(|_| try_yms_hms_tz(&date_time))
+        .or_else(|_| try_syslog_format(&date_time))
+}
+
+/// Convert a `datetime` string to `DateTime<FixedOffset>`
+fn from_datetime_with_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
+    DateTime::parse_from_rfc3339(s)
+        .or_else(|_| DateTime::parse_from_rfc2822(s))
+        .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%T%.f%z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%d %T%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%d %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B %d, %Y; %T %#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B %d, %Y; %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B %d %Y %T %#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B %d %Y %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B, %d %Y %T %#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%B, %d %Y %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A, %d %B %Y %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T.%f%#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A, %d %B %Y %T %#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T %#z"))
 }
 
 /// Convert a `datetime` string, that which mostly does not have a timezone info
 /// to Datetime fixed offset with local timezone
-fn from_datetime_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+fn from_datetime_without_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     Local
-        .datetime_from_str(s, "%Y-%m-%dT%T.%f")
-        .or_else(|_|Local.datetime_from_str(s, "%b %d %Y %T"))
-        .or_else(|_|Local.datetime_from_str(s, "%b %d, %Y %T"))
-        .or_else(|_|Local.datetime_from_str(s, "%B %d %Y %T"))
-        .or_else(|_|Local.datetime_from_str(s, "%B %d, %Y %T"))
-        .or_else(|_|Local.datetime_from_str(s, "%Y-%m-%d %T"))
-        .or_else(|_|Local.datetime_from_str(s, "%%Y-%m-%d %T.%f"))
+        .datetime_from_str(s, "%Y-%m-%dT%T")
+        .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%dT%T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T"))
+        .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%B %d %Y %T"))
+        .or_else(|_| Local.datetime_from_str(s, "%B %d %Y %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%B %d, %Y %T"))
+        .or_else(|_| Local.datetime_from_str(s, "%B %d, %Y %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T"))
+        .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %T.%f"))
+        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %T"))
+        .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %T"))
         .map(|x| x.with_timezone(x.offset()))
-        .map_err(|e| e.to_string())
 }
 
 /// Convert just `date` string without time or timezone information
@@ -76,6 +97,7 @@ fn from_date_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| NaiveDate::parse_from_str(s, "%D"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%F"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%v"))
+        .or_else(|_| NaiveDate::parse_from_str(s, "%B %d %Y"))
         .map(|x| x.and_hms(0, 0, 0))
         .map(|x| Local.from_local_datetime(&x))
         .map_err(|e| e.to_string())
@@ -84,39 +106,54 @@ fn from_date_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 
 /// Convert just `time` string without date or timezone information
 /// to Datetime fixed offset with local timezone & current date
-fn from_time_without_tz(s: &str) -> Result<DateTime<FixedOffset>, String> {
+fn from_time_without_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     NaiveTime::parse_from_str(s, "%T")
         .or_else(|_| NaiveTime::parse_from_str(s, "%I:%M%P"))
         .or_else(|_| NaiveTime::parse_from_str(s, "%I:%M %P"))
         .map(|x| Local::now().date().and_time(x).unwrap().naive_local())
         .map(|x| DateTime::from_utc(x, FixedOffset::east(0)))
-        .map_err(|e| e.to_string())
 }
 
 /// Try to parse the following types of dates
 /// 1970-12-25 16:16:16 PST
 /// 1970-12-25 16:16 PST
 fn try_yms_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
-    if let Some((tz, dt)) = is_tz_alpha(s) {
-        // assume we found a timezone
-        let tz = match tz.to_lowercase().as_str() {
-            "ut" | "utc" => "gmt".to_uppercase(),
-            _ => tz.to_uppercase(),
-        };
+    if let Some((dt, tz)) = is_tz_alpha(s) {
         to_rfc2822(dt, &tz)
     } else {
         Err("yms_hms_tz failed".to_string())
     }
 }
 
+/// Try to parse the following types of dates (partially syslog format)
+/// Feb 12 12:12:12
+/// Feb 12
+fn try_syslog_format(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+    let date = s.split_whitespace().collect::<Vec<_>>();
+    let year = Local::now().year();
+    if date.len().eq(&2) && date[0].is_ascii() {
+        NaiveDate::parse_from_str(&format!("{} {}", s, year), "%B %d %Y")
+            .map(|x| x.and_hms(0, 0, 0))
+            .map(|x| Local.from_local_datetime(&x))
+            .map_err(|e| e.to_string())
+            .map(|x| x.unwrap().with_timezone(x.unwrap().offset()))
+    } else if date.len().eq(&3) {
+        Local.datetime_from_str(&format!("{} {} {} {}", date[0], date[1], year, date[2]), "%B %d %Y %T")
+            .map(|x| x.with_timezone(x.offset()))
+            .map_err(|e|e.to_string())
+    } else {
+        Err("failed syslog format parsing".to_string())
+    }
+}
+
 /// Checks if the last characters are alphabet and assumes it to be TimeZone
-/// and returns the tuple of (timezone_part, date_part)
+/// and returns the tuple of (date_part, timezone_part)
 fn is_tz_alpha(s: &str) -> Option<(&str, &str)> {
     let mut dtz = s.trim().rsplitn(2, ' ');
     let tz = dtz.next().unwrap_or_default();
     let dt = dtz.next().unwrap_or_default();
     if tz.chars().all(char::is_alphabetic) {
-        Some((tz, dt))
+        Some((dt, tz))
     } else {
         None
     }
@@ -152,4 +189,6 @@ fn standardize_date(s: &str) -> String {
             .collect::<String>()
             + &s[8..]
     }
+    .replace(" UTC", " GMT")
+    .replace(" UT", " GMT")
 }
