@@ -137,7 +137,7 @@ fn try_syslog_format(s: &str) -> Result<DateTime<FixedOffset>, Error> {
             .map(|x| Local.from_local_datetime(&x))
             .map_err(|e| e.to_string())
             .map(|x| x.unwrap().with_timezone(x.unwrap().offset()))
-    } else if date.len().eq(&3) {
+    } else if date.len().eq(&3) && date[0].is_ascii() {
         Local.datetime_from_str(&format!("{} {} {} {}", date[0], date[1], year, date[2]), "%B %d %Y %T")
             .map(|x| x.with_timezone(x.offset()))
             .map_err(|e|e.to_string())
