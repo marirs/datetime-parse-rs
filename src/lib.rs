@@ -50,7 +50,7 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| from_time_without_tz(&date_time))
         .or_else(|_| from_time_with_tz(&date_time))
         .or_else(|_| try_yms_hms_tz(&date_time))
-        .or_else(|_| try_dmony_hms_tz(&date_time))
+        .or_else(|_| try_dmmmy_hms_tz(&date_time))
         .or_else(|_| try_others(&date_time))
 }
 
@@ -61,15 +61,9 @@ fn from_datetime_with_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
         .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%T%.f%z"))
         .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%d %T%#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%d %T.%f%#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%B %d, %Y; %T %#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%B %d, %Y; %T.%f%#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%B %d %Y %T %#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%B %d %Y %T.%f%#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%B, %d %Y %T %#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%B, %d %Y %T.%f%#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%A, %d %B %Y %T.%f%#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T.%f%#z"))
-        .or_else(|_| DateTime::parse_from_str(s, "%A, %d %B %Y %T %#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T %#z"))
 }
 
@@ -88,26 +82,16 @@ fn from_datetime_without_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError
         .or_else(|_| Local.datetime_from_str(s, "%B %d, %Y %T.%f"))
         .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T"))
         .or_else(|_| Local.datetime_from_str(s, "%Y-%m-%d %T.%f"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %T.%f"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %T.%f"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %T"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %T"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %I:%M%P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %I:%M %P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %I:%M:%S%P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %B %Y %I:%M:%S %P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %I:%M%P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %I:%M %P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %I:%M:%S%P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %B %Y %I:%M:%S %P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %m %Y %I:%M%P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %m %Y %I:%M %P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %m %Y %I:%M:%S%P"))
         .or_else(|_| Local.datetime_from_str(s, "%A %d %m %Y %I:%M:%S %P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %m %Y %I:%M%P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %m %Y %I:%M %P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %m %Y %I:%M:%S%P"))
-        .or_else(|_| Local.datetime_from_str(s, "%A, %d %m %Y %I:%M:%S %P"))
         .or_else(|_| Local.datetime_from_str(s, "%d %B %Y %I:%M%P"))
         .or_else(|_| Local.datetime_from_str(s, "%d %B %Y %I:%M %P"))
         .or_else(|_| Local.datetime_from_str(s, "%d %B %Y %I:%M:%S%P"))
@@ -128,9 +112,7 @@ fn from_date_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| NaiveDate::parse_from_str(s, "%F"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%v"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%B %d %Y"))
-        .or_else(|_| NaiveDate::parse_from_str(s, "%B, %d %Y"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%d %B %Y"))
-        .or_else(|_| NaiveDate::parse_from_str(s, "%d %B, %Y"))
         .map(|x| x.and_hms(0, 0, 0))
         .map(|x| Local.from_local_datetime(&x))
         .map_err(|e| e.to_string())
@@ -173,7 +155,7 @@ fn try_yms_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 /// 1 Jan 1970 22:00:00 PDT
 /// 1 Jan, 1970 22:00:00.000 PDT
 /// 1 Jan, 1970; 22:00:00 PDT
-fn try_dmony_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+fn try_dmmmy_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     if let Some((dt, tz)) = is_tz_alpha(s) {
         to_rfc2822(dt, &tz)
     } else {
@@ -187,14 +169,14 @@ fn try_dmony_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 fn try_others(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     let date = s.split_whitespace().collect::<Vec<_>>();
     let year = Local::now().year();
-    if date.len().eq(&2) && date[0].replace(',', "").chars().all(char::is_alphabetic) {
+    if date.len().eq(&2) && date[0].chars().all(char::is_alphabetic) {
         // trying Feb 12
         NaiveDate::parse_from_str(&format!("{} {}", s, year), "%B %d %Y")
             .map(|x| x.and_hms(0, 0, 0))
             .map(|x| Local.from_local_datetime(&x))
             .map_err(|e| e.to_string())
             .map(|x| x.unwrap().with_timezone(x.unwrap().offset()))
-    } else if date.len().eq(&2) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+    } else if date.len().eq(&2) && date[1].chars().all(char::is_alphabetic) {
         // trying 12 Feb
         NaiveDate::parse_from_str(&format!("{} {}", s, year), "%d %B %Y")
             .map(|x| x.and_hms(0, 0, 0))
@@ -205,60 +187,58 @@ fn try_others(s: &str) -> Result<DateTime<FixedOffset>, Error> {
         // trying Feb 12 14:00:01 or Feb 12, 14:00:01 or Feb 12 14:00
         Local
             .datetime_from_str(
-                &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                 "%B %d %Y %H:%M",
             )
             .or_else(|_| {
                 Local.datetime_from_str(
-                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                     "%B %d %Y %T",
                 )
             })
             .or_else(|_| {
                 Local.datetime_from_str(
-                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                     "%B %d %Y %I:%M%P",
                 )
             })
             .map(|x| x.with_timezone(x.offset()))
             .map_err(|e| e.to_string())
-    } else if date.len().eq(&3) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+    } else if date.len().eq(&3) && date[1].chars().all(char::is_alphabetic) {
         // trying 12 Feb 14:00:01 or 12 Feb, 14:00:01 or 12 Feb 14:00
         Local
             .datetime_from_str(
-                &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                 "%d %B %Y %H:%M",
             )
             .or_else(|_| {
                 Local.datetime_from_str(
-                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                     "%d %B %Y %T",
                 )
             })
             .or_else(|_| {
                 Local.datetime_from_str(
-                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]),
                     "%d %B %Y %I:%M%P",
                 )
             })
             .map(|x| x.with_timezone(x.offset()))
             .map_err(|e| e.to_string())
-    } else if date.len().eq(&4) && date[0].replace(',', "").chars().all(char::is_alphabetic) {
+    } else if date.len().eq(&4) && date[0].chars().all(char::is_alphabetic) {
         // trying Feb 12 3:33 pm
         Local
             .datetime_from_str(
-                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3])
-                    .replace(',', ""),
+                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3]),
                 "%B %d %Y %I:%M %P",
             )
             .map(|x| x.with_timezone(x.offset()))
             .map_err(|e| e.to_string())
-    } else if date.len().eq(&4) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+    } else if date.len().eq(&4) && date[1].chars().all(char::is_alphabetic) {
         // trying 12 Feb 3:33 pm
         Local
             .datetime_from_str(
-                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3])
-                    .replace(',', ""),
+                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3]),
                 "%d %B %Y %I:%M %P",
             )
             .map(|x| x.with_timezone(x.offset()))
@@ -287,31 +267,15 @@ fn to_rfc2822(s: &str, tz: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %I:%M%P"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %I:%M %P"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B, %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B, %Y %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y %H:%M"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y %H:%M"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y; %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y; %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y; %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %B %d %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %B %d %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %B %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %B %Y %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %Y %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %m %Y %T.%f"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %m %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %m %Y %T"))
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A, %d %m %Y %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T.%f"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T"))
@@ -325,6 +289,7 @@ fn to_rfc2822(s: &str, tz: &str) -> Result<DateTime<FixedOffset>, Error> {
 }
 
 /// converts date/time string from having '.' or '/' to '-'
+/// and remove extra characters like ',', ';'
 /// eg: 12/13/2000 to 12-13-2000 or 12/13/2000 12:12:12.14 to 12-13-2000 12:12:12.14
 fn standardize_date(s: &str) -> String {
     if s.len() < 8 {
@@ -344,4 +309,6 @@ fn standardize_date(s: &str) -> String {
     }
     .replace(" UTC", " GMT")
     .replace(" UT", " GMT")
+    .replace(',', "")
+    .replace(';', "")
 }
