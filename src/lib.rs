@@ -46,6 +46,7 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| from_date_without_tz(&date_time))
         .or_else(|_| from_time_without_tz(&date_time))
         .or_else(|_| try_yms_hms_tz(&date_time))
+        .or_else(|_| try_dmony_hms_tz(&date_time))
         .or_else(|_| try_syslog_format(&date_time))
 }
 
@@ -125,6 +126,14 @@ fn try_yms_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     }
 }
 
+fn try_dmony_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+    if let Some((dt, tz)) = is_tz_alpha(s) {
+        to_rfc2822(dt, &tz)
+    } else {
+        Err("yms_hms_tz failed".to_string())
+    }
+}
+
 /// Try to parse the following types of dates (partially syslog format)
 /// Feb 12 12:12:12
 /// Feb 12
@@ -163,6 +172,17 @@ fn is_tz_alpha(s: &str) -> Option<(&str, &str)> {
 fn to_rfc2822(s: &str, tz: &str) -> Result<DateTime<FixedOffset>, Error> {
     NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B, %Y %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B, %Y %T.%f"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %Y %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %Y %T.%f"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y %T.%f"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y; %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y; %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d, %Y; %T.%f"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y %T"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %Y %T.%f"))
         .and_then(|x| {
             DateTime::parse_from_rfc2822(
                 (x.format("%a, %d %b %Y %H:%M:%S").to_string() + " " + tz).as_str(),
