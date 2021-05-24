@@ -12,7 +12,7 @@ Parse various different date/time formats to a standard RFC 3339 format as chron
 ### Usage
 ```toml
 [dependencies]
-datetime_parser = { git = "https://github.com/marirs/datetime-parse-rs", branch = "main" }
+datetime_parser = "0.0.1-alpha"
 ```
 
 and
