@@ -9,6 +9,8 @@ Parse various different date/time formats to a standard RFC 3339 format as chron
 - If date/time does <u>NOT</u> have `year`; `current year` is added
 - if date/time does <u>NOT</u> have `time-zone` info; `Local time-zone info` is added
 
+Some example dates are<a href="https://raw.githubusercontent.com/marirs/datetime-parse-rs/main/examples/dates.txt" target="_blank"> seen here!</a>  
+
 ### Usage
 ```toml
 [dependencies]
