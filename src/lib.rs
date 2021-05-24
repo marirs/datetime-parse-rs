@@ -50,7 +50,7 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| from_time_without_tz(&date_time))
         .or_else(|_| try_yms_hms_tz(&date_time))
         .or_else(|_| try_dmony_hms_tz(&date_time))
-        .or_else(|_| try_syslog_format(&date_time))
+        .or_else(|_| try_others(&date_time))
 }
 
 /// Convert a `datetime` string to `DateTime<FixedOffset>`
@@ -127,6 +127,9 @@ fn from_date_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| NaiveDate::parse_from_str(s, "%F"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%v"))
         .or_else(|_| NaiveDate::parse_from_str(s, "%B %d %Y"))
+        .or_else(|_| NaiveDate::parse_from_str(s, "%B, %d %Y"))
+        .or_else(|_| NaiveDate::parse_from_str(s, "%d %B %Y"))
+        .or_else(|_| NaiveDate::parse_from_str(s, "%d %B, %Y"))
         .map(|x| x.and_hms(0, 0, 0))
         .map(|x| Local.from_local_datetime(&x))
         .map_err(|e| e.to_string())
@@ -166,28 +169,90 @@ fn try_dmony_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     }
 }
 
-/// Try to parse the following types of dates (partially syslog format)
-/// Feb 12 12:12:12
-/// Feb 12
-fn try_syslog_format(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+/// Try to parse the following types of dates
+/// Feb 12 12:12:12 or Feb 12, 12:12
+/// Feb 12 or 12 Feb
+fn try_others(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     let date = s.split_whitespace().collect::<Vec<_>>();
     let year = Local::now().year();
-    if date.len().eq(&2) && date[0].is_ascii() {
+    if date.len().eq(&2) && date[0].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying Feb 12
         NaiveDate::parse_from_str(&format!("{} {}", s, year), "%B %d %Y")
             .map(|x| x.and_hms(0, 0, 0))
             .map(|x| Local.from_local_datetime(&x))
             .map_err(|e| e.to_string())
             .map(|x| x.unwrap().with_timezone(x.unwrap().offset()))
-    } else if date.len().eq(&3) && date[0].is_ascii() {
+    } else if date.len().eq(&2) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying 12 Feb
+        NaiveDate::parse_from_str(&format!("{} {}", s, year), "%d %B %Y")
+            .map(|x| x.and_hms(0, 0, 0))
+            .map(|x| Local.from_local_datetime(&x))
+            .map_err(|e| e.to_string())
+            .map(|x| x.unwrap().with_timezone(x.unwrap().offset()))
+    } else if date.len().eq(&3) && date[0].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying Feb 12 14:00:01 or Feb 12, 14:00:01 or Feb 12 14:00
         Local
             .datetime_from_str(
-                &format!("{} {} {} {}", date[0], date[1], year, date[2]),
-                "%B %d %Y %T",
+                &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                "%B %d %Y %H:%M",
+            )
+            .or_else(|_| {
+                Local.datetime_from_str(
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    "%B %d %Y %T",
+                )
+            })
+            .or_else(|_| {
+                Local.datetime_from_str(
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    "%B %d %Y %I:%M%P",
+                )
+            })
+            .map(|x| x.with_timezone(x.offset()))
+            .map_err(|e| e.to_string())
+    } else if date.len().eq(&3) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying 12 Feb 14:00:01 or 12 Feb, 14:00:01 or 12 Feb 14:00
+        Local
+            .datetime_from_str(
+                &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                "%d %B %Y %H:%M",
+            )
+            .or_else(|_| {
+                Local.datetime_from_str(
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    "%d %B %Y %T",
+                )
+            })
+            .or_else(|_| {
+                Local.datetime_from_str(
+                    &format!("{} {} {} {}", date[0], date[1], year, date[2]).replace(',', ""),
+                    "%d %B %Y %I:%M%P",
+                )
+            })
+            .map(|x| x.with_timezone(x.offset()))
+            .map_err(|e| e.to_string())
+    } else if date.len().eq(&4) && date[0].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying Feb 12 3:33 pm
+        Local
+            .datetime_from_str(
+                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3])
+                    .replace(',', ""),
+                "%B %d %Y %I:%M %P",
+            )
+            .map(|x| x.with_timezone(x.offset()))
+            .map_err(|e| e.to_string())
+    } else if date.len().eq(&4) && date[1].replace(',', "").chars().all(char::is_alphabetic) {
+        // trying 12 Feb 3:33 pm
+        Local
+            .datetime_from_str(
+                &format!("{} {} {} {} {}", date[0], date[1], year, date[2], date[3])
+                    .replace(',', ""),
+                "%d %B %Y %I:%M %P",
             )
             .map(|x| x.with_timezone(x.offset()))
             .map_err(|e| e.to_string())
     } else {
-        Err("failed syslog format parsing".to_string())
+        Err("failed brute force parsing".to_string())
     }
 }
 
