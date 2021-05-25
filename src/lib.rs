@@ -42,17 +42,21 @@ impl std::str::FromStr for DateTimeFixedOffset {
 /// parse_from interprets the input date/time slice and returns a normalised parsed date/time
 /// as DateTime<FixedOffset> or will return an Error
 fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
-    let date_time = standardize_date(date_time);
-    DateTime::parse_from_str(&date_time, "%+")
-        .or_else(|_| from_datetime_with_tz(&date_time))
-        .or_else(|_| from_datetime_without_tz(&date_time))
-        .or_else(|_| from_date_without_tz(&date_time))
-        .or_else(|_| from_time_without_tz(&date_time))
-        .or_else(|_| from_time_with_tz(&date_time))
-        .or_else(|_| try_yms_hms_tz(&date_time))
-        .or_else(|_| try_dmmmy_hms_tz(&date_time))
-        .or_else(|_| from_datetime_with_tz_before_year(&date_time))
-        .or_else(|_| try_others(&date_time))
+    if date_time.is_empty() {
+        Err("cannot be empty".to_string())
+    } else {
+        let date_time = standardize_date(date_time);
+        DateTime::parse_from_str(&date_time, "%+")
+            .or_else(|_| from_datetime_with_tz(&date_time))
+            .or_else(|_| from_datetime_without_tz(&date_time))
+            .or_else(|_| from_date_without_tz(&date_time))
+            .or_else(|_| from_time_without_tz(&date_time))
+            .or_else(|_| from_time_with_tz(&date_time))
+            .or_else(|_| try_yms_hms_tz(&date_time))
+            .or_else(|_| try_dmmmy_hms_tz(&date_time))
+            .or_else(|_| from_datetime_with_tz_before_year(&date_time))
+            .or_else(|_| try_others(&date_time))
+    }
 }
 
 /// Convert a `datetime` string to `DateTime<FixedOffset>`
