@@ -51,6 +51,7 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| from_time_with_tz(&date_time))
         .or_else(|_| try_yms_hms_tz(&date_time))
         .or_else(|_| try_dmmmy_hms_tz(&date_time))
+        .or_else(|_| from_datetime_with_tz_before_year(&date_time))
         .or_else(|_| try_others(&date_time))
 }
 
@@ -65,6 +66,16 @@ fn from_datetime_with_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
         .or_else(|_| DateTime::parse_from_str(s, "%B %d %Y %T.%f%#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T.%f%#z"))
         .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %Y %T %#z"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %T %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %B %d %T %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %T.%f %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %B %d %T.%f %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %H:%M %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %B %d %H:%M %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %I:%M %P %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %B %d %I:%M %P %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %d %B %I:%M%P %#z %Y"))
+        .or_else(|_| DateTime::parse_from_str(s, "%A %B %d %I:%M%P %#z %Y"))
 }
 
 /// Convert a `datetime` string, that which mostly does not have a timezone info
@@ -138,6 +149,15 @@ fn from_time_with_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     } else {
         Err("custom parsing failed".to_string())
     }
+}
+
+/// Convert datetime with timezone information before the year
+/// eg: Wed Jul 1, 3:33pm PST 1970
+fn from_datetime_with_tz_before_year(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+    let tokens = s.split_whitespace().collect::<Vec<_>>();
+    let dt = tokens[..tokens.len()-2].join(" ") + " " + tokens.last().unwrap();
+    let tz = tokens[tokens.len()-2];
+    to_rfc2822(&dt, tz)
 }
 
 /// Try to parse the following types of dates
@@ -280,6 +300,38 @@ fn to_rfc2822(s: &str, tz: &str) -> Result<DateTime<FixedOffset>, Error> {
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T"))
         .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %Y %T.%f"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %m %d %H:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %H:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %H:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %H:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %m %d %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %m %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %I:%M %P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %d %B %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %I:%M %P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%A %B %d %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %m %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %m %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %T.%f %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %T %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%m %d %I:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %m %I:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %I:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %I:%M %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%m %d %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %m %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %I:%M %P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%d %B %I:%M%P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %I:%M %P %Y"))
+        .or_else(|_| NaiveDateTime::parse_from_str(s, "%B %d %I:%M%P %Y"))
         .and_then(|x| {
             DateTime::parse_from_rfc2822(
                 (x.format("%a, %d %b %Y %H:%M:%S").to_string() + " " + tz).as_str(),

@@ -1,7 +1,8 @@
 Date Time parser
 =================
-[![Build Status](https://travis-ci.com/marirs/datetime-parse-rs.svg?branch=main)](https://travis-ci.com/marirs/datetime-parse-rs)
-![GitHub](https://img.shields.io/github/license/marirs/datetime-parse-rs)
+![Crates.io](https://img.shields.io/crates/v/datetime_parse?style=for-the-badge)
+![Travis (.org) branch](https://img.shields.io/travis/marirs/datetime-parse-rs/main?style=for-the-badge)
+![GitHub](https://img.shields.io/github/license/marirs/datetime-parse-rs?style=for-the-badge)
 
 Parse various different date/time formats to a standard RFC 3339 format as chrono DateTime FixedOffset.
 
@@ -14,7 +15,7 @@ Some example dates are<a href="https://raw.githubusercontent.com/marirs/datetime
 ### Usage
 ```toml
 [dependencies]
-datetime_parser = "0.0.1-beta.2"
+datetime_parser = "0.0.1-beta.3"
 ```
 
 and
