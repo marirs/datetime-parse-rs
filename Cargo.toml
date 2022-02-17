@@ -4,12 +4,12 @@ authors = ["MARIRS <marirs@gmail.com>"]
 description = "parse various formats of date time strings to rfc3339"
 keywords = ["date", "time", "parse"]
 categories = ["parsing", "date-and-time"]
-version = "0.0.1-beta.5"
+version = "0.0.1-beta.6"
 exclude = ["examples"]
 readme = "README.md"
 license-file = "LICENSE"
 repository = "https://github.com/marirs/marirs/datetime-parse-rs"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 chrono = "0.4.19"

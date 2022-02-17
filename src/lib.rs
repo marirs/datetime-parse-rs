@@ -54,6 +54,7 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
             .or_else(|_| from_time_with_tz(&date_time))
             .or_else(|_| try_yms_hms_tz(&date_time))
             .or_else(|_| try_dmmmy_hms_tz(&date_time))
+            .or_else(|_| try_mmmddyyyy_hms_tz(&date_time))
             .or_else(|_| from_datetime_with_tz_before_year(&date_time))
             .or_else(|_| try_others(&date_time))
     }
@@ -148,7 +149,7 @@ fn from_time_without_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
 /// to Datetime fixed offset with local timezone & current date
 fn from_time_with_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     if let Some((dt, tz)) = is_tz_alpha(s) {
-        let date = format!("{} {}", Local::today().format("%Y-%m-%d").to_string(), dt);
+        let date = format!("{} {}", Local::today().format("%Y-%m-%d"), dt);
         to_rfc2822(&date, tz)
     } else {
         Err("custom parsing failed".to_string())
@@ -159,8 +160,8 @@ fn from_time_with_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 /// eg: Wed Jul 1, 3:33pm PST 1970
 fn from_datetime_with_tz_before_year(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     let tokens = s.split_whitespace().collect::<Vec<_>>();
-    let dt = tokens[..tokens.len()-2].join(" ") + " " + tokens.last().unwrap();
-    let tz = tokens[tokens.len()-2];
+    let dt = tokens[..tokens.len() - 2].join(" ") + " " + tokens.last().unwrap();
+    let tz = tokens[tokens.len() - 2];
     to_rfc2822(&dt, tz)
 }
 
@@ -169,7 +170,7 @@ fn from_datetime_with_tz_before_year(s: &str) -> Result<DateTime<FixedOffset>, E
 /// 1970-12-25 16:16 PST
 fn try_yms_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     if let Some((dt, tz)) = is_tz_alpha(s) {
-        to_rfc2822(dt, &tz)
+        to_rfc2822(dt, tz)
     } else {
         Err("custom parsing failed".to_string())
     }
@@ -181,7 +182,27 @@ fn try_yms_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 /// 1 Jan, 1970; 22:00:00 PDT
 fn try_dmmmy_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     if let Some((dt, tz)) = is_tz_alpha(s) {
-        to_rfc2822(dt, &tz)
+        to_rfc2822(dt, tz)
+    } else {
+        Err("custom parsing failed".to_string())
+    }
+}
+
+// Feb 14 2022 13:13:55 GMT+00:00
+// Feb 14 2022 13:13:55 GMT+0000
+// Wed Jul 1 1970 13:13:55 GMT+0000
+fn try_mmmddyyyy_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+    let tz = s.rsplitn(2, ' ').take(2).collect::<Vec<_>>()[0].replace("GMT", "");
+    let dt = s.rsplitn(2, ' ').take(2).collect::<Vec<_>>()[1];
+    if !tz.is_empty() {
+        let x = dt.to_string() + " " + &tz.replace(':', "");
+        DateTime::parse_from_str(&x, "%B %d %Y %H:%M:%S %z")
+            .or_else(|_| DateTime::parse_from_str(&x, "%B %d %Y %I:%M:%S%P %z"))
+            .or_else(|_| DateTime::parse_from_str(&x, "%B %d %Y %I:%M:%S %P %z"))
+            .or_else(|_| DateTime::parse_from_str(&x, "%A %B %d %Y %H:%M:%S %z"))
+            .or_else(|_| DateTime::parse_from_str(&x, "%A %B %d %Y %I:%M%P %z"))
+            .or_else(|_| DateTime::parse_from_str(&x, "%A %B %d %Y %I:%M %P %z"))
+            .map_err(|e| e.to_string())
     } else {
         Err("custom parsing failed".to_string())
     }
@@ -365,6 +386,5 @@ fn standardize_date(s: &str) -> String {
     }
     .replace(" UTC", " GMT")
     .replace(" UT", " GMT")
-    .replace(',', "")
-    .replace(';', "")
+    .replace(&[',', ';'], "")
 }
