@@ -46,7 +46,8 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
         Err("cannot be empty".to_string())
     } else {
         let date_time = standardize_date(date_time);
-        DateTime::parse_from_str(&date_time, "%+")
+        from_unix_timestamp(&date_time)
+            .or_else(|_| DateTime::parse_from_str(&date_time, "%+"))
             .or_else(|_| from_datetime_with_tz(&date_time))
             .or_else(|_| from_datetime_without_tz(&date_time))
             .or_else(|_| from_date_without_tz(&date_time))
@@ -60,6 +61,15 @@ fn parse_from(date_time: &str) -> Result<DateTime<FixedOffset>, Error> {
     }
 }
 
+fn from_unix_timestamp(s: &str) -> Result<DateTime<FixedOffset>, Error> {
+    let tts = s.parse::<i64>().map_err(|e| e.to_string())?;
+    let dt =
+        chrono::naive::NaiveDateTime::from_timestamp(tts / 1000000000, (tts % 1000000000) as u32);
+    Ok(chrono::DateTime::<FixedOffset>::from_utc(
+        dt,
+        FixedOffset::east(0),
+    ))
+}
 /// Convert a `datetime` string to `DateTime<FixedOffset>`
 fn from_datetime_with_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError> {
     DateTime::parse_from_rfc3339(s)
