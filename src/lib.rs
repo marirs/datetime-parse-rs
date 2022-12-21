@@ -170,6 +170,9 @@ fn from_time_with_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 /// eg: Wed Jul 1, 3:33pm PST 1970
 fn from_datetime_with_tz_before_year(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     let tokens = s.split_whitespace().collect::<Vec<_>>();
+    if tokens.len() < 2 {
+        return Err("custom parsing failed".to_string());
+    }
     let dt = tokens[..tokens.len() - 2].join(" ") + " " + tokens.last().unwrap();
     let tz = tokens[tokens.len() - 2];
     to_rfc2822(&dt, tz)
