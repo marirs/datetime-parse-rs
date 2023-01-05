@@ -15,7 +15,7 @@ Some example dates are<a href="https://raw.githubusercontent.com/marirs/datetime
 ### Usage
 ```toml
 [dependencies]
-datetime_parser = "0.0.1-beta.4"
+datetime_parser = "0.0.1-beta.10"
 ```
 
 and
