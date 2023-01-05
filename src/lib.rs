@@ -68,10 +68,10 @@ fn from_unix_timestamp(s: &str) -> Result<DateTime<FixedOffset>, Error> {
         chrono::naive::NaiveDateTime::from_timestamp(tts, 0)
     } else if s.len() <= 13 {
         //timestamp in milliseconds
-        chrono::naive::NaiveDateTime::from_timestamp(tts / 1000, (tts % 1000) as u32)
+        chrono::naive::NaiveDateTime::from_timestamp(tts / 1000, (tts % 1000) as u32 * 1000000)
     } else if s.len() <= 16 {
         //timestamp in microseconds
-        chrono::naive::NaiveDateTime::from_timestamp(tts / 1000000, (tts % 1000000) as u32)
+        chrono::naive::NaiveDateTime::from_timestamp(tts / 1000000, (tts % 1000000) as u32 * 1000)
     } else {
         //timestamp in nanoseconds
         chrono::naive::NaiveDateTime::from_timestamp(tts / 1000000000, (tts % 1000000000) as u32)
