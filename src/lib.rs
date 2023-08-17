@@ -137,11 +137,11 @@ fn from_datetime_without_tz(s: &str) -> Result<DateTime<FixedOffset>, ParseError
         .or_else(|_| Local.datetime_from_str(s, "%d %m %Y %I:%M %P"))
         .or_else(|_| Local.datetime_from_str(s, "%d %m %Y %I:%M:%S%P"))
         .or_else(|_| Local.datetime_from_str(s, "%d %m %Y %I:%M:%S %P"))
+        .or_else(|_| Local.datetime_from_str(s, "%-m-%-d-%Y %-H:%-M:%-S %p"))
         .map(|x| x.with_timezone(x.offset()))
 }
 
-/// Convert just `date` string without time or timezone information
-/// to Datetime fixed offset with local timezone
+/// Convert just `date` string without time or timezone information to Datetime fixed offset with local timezone
 fn from_date_without_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     NaiveDate::parse_from_str(s, "%Y-%m-%d")
         .or_else(|_| NaiveDate::parse_from_str(s, "%m-%d-%y"))
@@ -217,14 +217,13 @@ fn try_dmmmy_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
 // Wed Jul 1 1970 13:13:55 GMT+0000
 fn try_mmmddyyyy_hms_tz(s: &str) -> Result<DateTime<FixedOffset>, Error> {
     let tz = s.rsplitn(2, ' ').take(2).collect::<Vec<_>>()[0].replace("GMT", "");
-    let dt;
-    if s.rsplitn(2, ' ').count() > 1 {
-        dt = s.rsplitn(2, ' ').take(2).collect::<Vec<_>>()[1].to_string();
+    let dt = if s.rsplitn(2, ' ').count() > 1 {
+        s.rsplitn(2, ' ').take(2).collect::<Vec<_>>()[1].to_string()
     } else {
         return Err("custom parsing failed".to_string());
     };
     if !tz.is_empty() {
-        let x = dt.to_string() + " " + &tz.replace(':', "");
+        let x = dt + " " + &tz.replace(':', "");
         DateTime::parse_from_str(&x, "%B %d %Y %H:%M:%S %z")
             .or_else(|_| DateTime::parse_from_str(&x, "%B %d %Y %I:%M:%S%P %z"))
             .or_else(|_| DateTime::parse_from_str(&x, "%B %d %Y %I:%M:%S %P %z"))
@@ -402,7 +401,6 @@ fn standardize_date(s: &str) -> String {
         s.to_string()
     } else {
         s.chars()
-            .into_iter()
             .take(8)
             .map(|mut x| {
                 if x.eq(&'.') || x.eq(&'/') {
@@ -415,5 +413,5 @@ fn standardize_date(s: &str) -> String {
     }
     .replace(" UTC", " GMT")
     .replace(" UT", " GMT")
-    .replace(&[',', ';'], "")
+    .replace([',', ';'], "")
 }

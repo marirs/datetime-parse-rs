@@ -72,3 +72,15 @@ fn test_epoch_nanoseconds() {
         .to_rfc3339()
         .starts_with("2023-01-05T07:27:19.123123123"));
 }
+
+#[test]
+fn test_m_d_yyyy_h_m_s_tt() {
+    let date = "8/7/2023 8:23:50 AM";
+    let test = date.parse::<DateTimeFixedOffset>();
+    assert!(test.is_ok());
+    assert!(test
+        .unwrap()
+        .0
+        .to_rfc3339()
+        .starts_with("2023-08-07T08:23:50+02:00"));
+}
